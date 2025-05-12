@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>2자리 × 2자리 구구단 게임</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #FFFBCC;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      margin-top: 20px;
+      font-size: 2em;
+      color: #333;
+    }
+    #game {
+      background: #fff;
+      border: 4px solid #FFD700;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px;
+      width: 320px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      position: relative;
+    }
+    #question {
+      font-size: 1.6em;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    #answer {
+      width: 100%;
+      font-size: 1.4em;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+    #controls {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    button {
+      font-size: 1.2em;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #submit { background: #4CAF50; color: #fff; }
+    #pause  { background: #f44336; color: #fff; }
+    #stats {
+      margin-top: 15px;
+      font-size: 1em;
+      color: #333;
+    }
+    #overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      font-size: 2em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      visibility: hidden;
+    }
+  </style>
+</head>
+<body>
+  <h1>2자리 × 2자리 구구단 게임</h1>
+  <div id="game">
+    <div id="overlay">일시정지</div>
+    <div id="question">— × — = ?</div>
+    <input type="number" id="answer" placeholder="정답을 입력하세요" />
+    <div id="controls">
+      <button id="submit">제출</button>
+      <button id="pause">일시정지</button>
+    </div>
+    <div id="stats">
+      <div>맞은 개수: <span id="correct">0</span></div>
+      <div>틀린 개수: <span id="wrong">0</span></div>
+      <div>평균 시간: <span id="avgTime">—</span>초</div>
+      <div>총 풀은 문제: <span id="totalSolved">0</span></div>
+    </div>
+  </div>
+
+  <script>
+    // 요소 가져오기
+    const qEl       = document.getElementById('question');
+    const ansInput  = document.getElementById('answer');
+    const btnSubmit = document.getElementById('submit');
+    const btnPause  = document.getElementById('pause');
+    const overlay   = document.getElementById('overlay');
+    const statCorr  = document.getElementById('correct');
+    const statWrong = document.getElementById('wrong');
+    const statAvg   = document.getElementById('avgTime');
+    const statTotal = document.getElementById('totalSolved');
+
+    // 게임 상태
+    let a, b, startTime;
+    let correctCount = 0, wrongCount = 0;
+    let times = []; // 각 문제 풀이 시간 저장
+    let solvedBatch = 0;
+    let paused = false;
+
+    // 총 푼 문제 수 로컬스토리지에서 불러오기
+    let totalSolved = parseInt(localStorage.getItem('totalSolved')) || 0;
+    statTotal.textContent = totalSolved;
+
+    // 새 문제 생성
+    function newQuestion() {
+      a = Math.floor(Math.random()*90) + 10;
+      b = Math.floor(Math.random()*90) + 10;
+      qEl.textContent = `${a} × ${b} = ?`;
+      ansInput.value = '';
+      ansInput.focus();
+      startTime = Date.now();
+    }
+
+    // 정답 확인
+    function checkAnswer() {
+      if (paused) return;
+      const userAns = parseInt(ansInput.value);
+      const correctAns = a * b;
+      const elapsed = (Date.now() - startTime) / 1000;
+      times.push(elapsed);
+
+      if (userAns === correctAns) {
+        correctCount++;
+        statCorr.textContent = correctCount;
+      } else {
+        wrongCount++;
+        statWrong.textContent = wrongCount;
+      }
+
+      solvedBatch++;
+      totalSolved++;
+      localStorage.setItem('totalSolved', totalSolved);
+      statTotal.textContent = totalSolved;
+
+      // 5문제마다 평균 시간 계산
+      if (solvedBatch === 5) {
+        const avg = (times.reduce((sum,t)=>sum+t,0) / times.length).toFixed(2);
+        statAvg.textContent = avg;
+        // 초기화
+        times = [];
+        solvedBatch = 0;
+        correctCount = 0;
+        wrongCount = 0;
+        statCorr.textContent = '0';
+        statWrong.textContent = '0';
+      }
+
+      newQuestion();
+    }
+
+    // 일시정지 토글
+    function togglePause() {
+      paused = !paused;
+      overlay.style.visibility = paused ? 'visible' : 'hidden';
+      if (!paused) {
+        // 재개 시 시간 재설정
+        startTime = Date.now();
+        ansInput.focus();
+      }
+    }
+
+    // 이벤트 리스너
+    btnSubmit.addEventListener('click', checkAnswer);
+    ansInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') checkAnswer();
+    });
+    btnPause.addEventListener('click', togglePause);
+
+    // 시작
+    newQuestion();
+  </script>
+</body>
+</html>
